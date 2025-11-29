@@ -4,6 +4,7 @@ import (
     "context"
     "encoding/json"
     "fmt"
+    "os"
     "time"
 
     "github.com/aws/aws-lambda-go/events"
@@ -20,10 +21,10 @@ import (
 )
 
 const (
-    TableName = "contact_messages"
-    FromEmail = "contact@ryosuz.com"    // SESでVerify済み
-    ToEmail   = "contact@ryosuz.com"    // 通知先メール
-    Region    = "ap-northeast-1"        // 東京リージョン例
+    TableName = os.Getenv("TABLE_NAME")
+    FromEmail = os.Getenv("FROM_EMAIL")    // SESでVerify済み
+    ToEmail   = os.Getenv("TO_EMAIL")    // 通知先メール
+    Region    = os.Getenv("REGION")        // 東京リージョン例
 )
 
 type ContactRequest struct {
