@@ -20,7 +20,7 @@ import (
     "github.com/google/uuid"
 )
 
-const (
+var (
     TableName = os.Getenv("TABLE_NAME")
     FromEmail = os.Getenv("FROM_EMAIL")    // SESでVerify済み
     ToEmail   = os.Getenv("TO_EMAIL")    // 通知先メール
