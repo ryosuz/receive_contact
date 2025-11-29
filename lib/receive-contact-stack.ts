@@ -12,6 +12,7 @@ export class ReceiveContactStack extends cdk.Stack {
     const table = new dynamodb.Table(this, 'ContactMessages', {
       tableName: 'contact_messages',
       partitionKey: { name: 'id', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'received_at', type: dynamodb.AttributeType.STRING },
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
