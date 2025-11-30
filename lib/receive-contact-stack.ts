@@ -46,7 +46,10 @@ export class ReceiveContactStack extends cdk.Stack {
       handler: lambdaFunc,
       proxy: false,
       defaultCorsPreflightOptions: {
-        allowOrigins: ['*'], // 必要なら制限
+        allowOrigins: [
+          "https://portfolio.ryosuz.com",
+          "http://localhost:3000"
+        ],
         allowMethods: ['POST'],
       },
     });
