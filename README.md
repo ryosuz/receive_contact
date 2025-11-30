@@ -115,3 +115,13 @@ curl -X POST https://<API-ID>.execute-api.ap-northeast-1.amazonaws.com/prod/cont
 - SESメール通知確認済み
 - CI/CD導入済み
 - デプロイ＆疎通確認済み
+
+---
+return events.APIGatewayProxyResponse{
+        StatusCode: 200,
+        Body:       `{"message":"お問い合わせを受け付けました。"}`,
+        Headers: map[string]string{
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*", // これ必要
+        },
+    }, nil

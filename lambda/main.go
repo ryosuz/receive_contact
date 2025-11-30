@@ -100,6 +100,7 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
         Body:       `{"message":"お問い合わせを受け付けました。"}`,
         Headers: map[string]string{
             "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
         },
     }, nil
 }
