@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strings"
 	"time"
 
     "github.com/aws/aws-lambda-go/events"
@@ -83,7 +82,7 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 
     // 💡 reCAPTCHA チェック
 	if !verifyRecaptcha(data.RecaptchaToken) {
-		return response(400, "reCAPTCHA認証に失敗しました", request), nil
+		return errorResponse("reCAPTCHA認証に失敗しました", 400)
 	}
 
     recordID := uuid.New().String()
