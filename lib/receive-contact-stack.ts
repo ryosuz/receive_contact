@@ -26,7 +26,8 @@ export class ReceiveContactStack extends cdk.Stack {
         TABLE_NAME: table.tableName,
         FROM_EMAIL: 'contact@ryosuz.com',
         TO_EMAIL: 'contact@ryosuz.com',
-        REGION: this.region
+        REGION: this.region,
+        RECAPTCHA_SECRET_KEY: process.env.RECAPTCHA_SECRET_KEY!,
       },
     });
 

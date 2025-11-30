@@ -2,10 +2,14 @@ package main
 
 import (
     "context"
-    "encoding/json"
-    "fmt"
-    "os"
-    "time"
+	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
+	"net/url"
+	"os"
+	"strings"
+	"time"
 
     "github.com/aws/aws-lambda-go/events"
     "github.com/aws/aws-lambda-go/lambda"
@@ -25,6 +29,7 @@ var (
     FromEmail = os.Getenv("FROM_EMAIL")    // SESでVerify済み
     ToEmail   = os.Getenv("TO_EMAIL")    // 通知先メール
     Region    = os.Getenv("REGION")        // 東京リージョン例
+    RecaptchaSecretKey = os.Getenv("RECAPTCHA_SECRET_KEY")
 )
 
 type ContactRequest struct {
@@ -32,21 +37,54 @@ type ContactRequest struct {
     Email   string `json:"email"`
     Subject   string `json:"subject"`
     Message string `json:"message"`
+    RecaptchaToken string `json:"recaptchaToken"`
+}
+
+// --- reCAPTCHA のレスポンス構造体 ---
+type RecaptchaResponse struct {
+	Success bool `json:"success"`
+}
+
+
+// --- reCAPTCHA 検証 ---
+func verifyRecaptcha(token string) bool {
+	resp, err := http.PostForm(
+		"https://www.google.com/recaptcha/api/siteverify",
+		url.Values{
+			"secret":   {RecaptchaSecretKey},
+			"response": {token},
+		},
+	)
+	if err != nil {
+		log.Println("reCAPTCHA リクエストエラー:", err)
+		return false
+	}
+	defer resp.Body.Close()
+
+	var result RecaptchaResponse
+	json.NewDecoder(resp.Body).Decode(&result)
+	return result.Success
 }
 
 func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
     cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(Region))
     if err != nil {
-        return errorResponse("Failed to load AWS config", 500)
+        return errorResponse("AWS設定の読み込みに失敗しました", 500)
     }
 
     dynamoDB := dynamodb.NewFromConfig(cfg)
     sesClient := ses.NewFromConfig(cfg)
 
+    // JSONパース
     var data ContactRequest
     if err := json.Unmarshal([]byte(request.Body), &data); err != nil {
-        return errorResponse("Invalid request", 400)
+        return errorResponse("リクエストの解析に失敗しました", 400)
     }
+
+    // 💡 reCAPTCHA チェック
+	if !verifyRecaptcha(data.RecaptchaToken) {
+		return response(400, "reCAPTCHA認証に失敗しました", request), nil
+	}
 
     recordID := uuid.New().String()
     receivedAt := time.Now().UTC().Format(time.RFC3339)
@@ -63,9 +101,10 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
         },
     })
     if err != nil {
-        return errorResponse("Failed to save to DynamoDB", 500)
+        return errorResponse("DynamoDB保存に失敗しました", 500)
     }
 
+    // SESメール通知
     _, err = sesClient.SendEmail(ctx, &ses.SendEmailInput{
         Source: aws.String(FromEmail),
         Destination: &sesTypes.Destination{  // ← 修正！
@@ -92,7 +131,7 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
         ReplyToAddresses: []string{data.Email},
     })
     if err != nil {
-        return errorResponse("Failed to send email", 500)
+        return errorResponse("メール送信に失敗しました", 500)
     }
 
     return events.APIGatewayProxyResponse{
@@ -100,7 +139,7 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
         Body:       `{"message":"お問い合わせを受け付けました。"}`,
         Headers: map[string]string{
             "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Origin": "*", // TODO: 本番環境では必要
         },
     }, nil
 }
@@ -110,7 +149,7 @@ func errorResponse(msg string, code int) (events.APIGatewayProxyResponse, error)
         StatusCode: code,
         Headers: map[string]string{
 			"Content-Type": "application/json",
-			"Access-Control-Allow-Origin": "*",
+			"Access-Control-Allow-Origin": "*", // TODO: 本番環境では必要
 		},
         Body:       fmt.Sprintf(`{"error": "%s"}`, msg),
     }, nil
