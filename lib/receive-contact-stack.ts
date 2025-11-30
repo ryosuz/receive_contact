@@ -50,6 +50,7 @@ export class ReceiveContactStack extends cdk.Stack {
         allowMethods: ['POST'],
       },
     });
-    api.root.addMethod('POST');
+    const contact = api.root.addResource('contact');
+    contact.addMethod('POST');
   }
 }
