@@ -46,14 +46,18 @@ export class ReceiveContactStack extends cdk.Stack {
       handler: lambdaFunc,
       proxy: false,
       defaultCorsPreflightOptions: {
-        allowOrigins: [
-          "https://portfolio.ryosuz.com",
-          "http://localhost:3000"
-        ],
+        allowOrigins: ['*'],
         allowMethods: ['POST'],
       },
     });
     const contact = api.root.addResource('contact');
+    contact.addCorsPreflight({
+      allowOrigins: [
+        "https://portfolio.ryosuz.com",
+        "http://localhost:3000"
+      ],
+      allowMethods: ['POST'],
+    });
     contact.addMethod('POST');
   }
 }
