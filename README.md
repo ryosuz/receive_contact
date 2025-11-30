@@ -104,7 +104,7 @@ cdk deploy
 
 ## 9. テスト
 ```bash
-curl -X POST https://<API-ID>.execute-api.ap-northeast-1.amazonaws.com/prod/contact   -H "Content-Type: application/json"   -d '{"name":"test","email":"test@example.com","title":"test","message":"hello"}'
+curl -X POST https://<API-ID>.execute-api.ap-northeast-1.amazonaws.com/prod/contact   -H "Content-Type: application/json"   -d '{"name":"test","email":"test@example.com","subject":"test","message":"hello"}'
 ```
 
 ## 10. まとめ

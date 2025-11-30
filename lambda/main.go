@@ -30,7 +30,7 @@ var (
 type ContactRequest struct {
     Name    string `json:"name"`
     Email   string `json:"email"`
-    Title   string `json:"title"`
+    Subject   string `json:"subject"`
     Message string `json:"message"`
 }
 
@@ -57,7 +57,7 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
             "id":          &dynamodbTypes.AttributeValueMemberS{Value: recordID},
             "name":        &dynamodbTypes.AttributeValueMemberS{Value: data.Name},
             "email":       &dynamodbTypes.AttributeValueMemberS{Value: data.Email},
-            "title":       &dynamodbTypes.AttributeValueMemberS{Value: data.Title},
+            "subject":       &dynamodbTypes.AttributeValueMemberS{Value: data.Subject},
             "message":     &dynamodbTypes.AttributeValueMemberS{Value: data.Message},
             "received_at": &dynamodbTypes.AttributeValueMemberS{Value: receivedAt},
         },
@@ -73,7 +73,7 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
         },
         Message: &sesTypes.Message{          // ← 修正！
             Subject: &sesTypes.Content{
-                Data: aws.String(fmt.Sprintf("【お問い合わせ】%s", data.Title)),
+                Data: aws.String(fmt.Sprintf("【お問い合わせ】%s", data.Subject)),
             },
             Body: &sesTypes.Body{
                 Text: &sesTypes.Content{
@@ -81,10 +81,10 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
                         "お問い合わせを受け付けました。\n\n"+
                             "■ 名前：%s\n"+
                             "■ メール：%s\n"+
-                            "■ タイトル：%s\n"+
+                            "■ 件名：%s\n"+
                             "■ 送信日時：%s\n\n"+
                             "--- メッセージ ---\n%s\n",
-                        data.Name, data.Email, data.Title, receivedAt, data.Message,
+                        data.Name, data.Email, data.Subject, receivedAt, data.Message,
                     )),
                 },
             },
