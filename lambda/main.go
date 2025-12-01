@@ -74,6 +74,8 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
     dynamoDB := dynamodb.NewFromConfig(cfg)
     sesClient := ses.NewFromConfig(cfg)
 
+    fmt.Println("RECAPTCHA_SECRET_KEY: ", os.Getenv("RECAPTCHA_SECRET_KEY"))
+
     // JSONパース
     var data ContactRequest
     if err := json.Unmarshal([]byte(request.Body), &data); err != nil {
@@ -90,11 +92,11 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 
     _, err = dynamoDB.PutItem(ctx, &dynamodb.PutItemInput{
         TableName: aws.String(TableName),
-        Item: map[string]dynamodbTypes.AttributeValue{  // ← 修正！
+        Item: map[string]dynamodbTypes.AttributeValue{
             "id":          &dynamodbTypes.AttributeValueMemberS{Value: recordID},
             "name":        &dynamodbTypes.AttributeValueMemberS{Value: data.Name},
             "email":       &dynamodbTypes.AttributeValueMemberS{Value: data.Email},
-            "subject":       &dynamodbTypes.AttributeValueMemberS{Value: data.Subject},
+            "subject":     &dynamodbTypes.AttributeValueMemberS{Value: data.Subject},
             "message":     &dynamodbTypes.AttributeValueMemberS{Value: data.Message},
             "received_at": &dynamodbTypes.AttributeValueMemberS{Value: receivedAt},
         },
@@ -106,10 +108,10 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
     // SESメール通知
     _, err = sesClient.SendEmail(ctx, &ses.SendEmailInput{
         Source: aws.String(FromEmail),
-        Destination: &sesTypes.Destination{  // ← 修正！
+        Destination: &sesTypes.Destination{
             ToAddresses: []string{ToEmail},
         },
-        Message: &sesTypes.Message{          // ← 修正！
+        Message: &sesTypes.Message{
             Subject: &sesTypes.Content{
                 Data: aws.String(fmt.Sprintf("【お問い合わせ】%s", data.Subject)),
             },
