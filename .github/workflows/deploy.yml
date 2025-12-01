@@ -3,7 +3,7 @@ name: Deploy Lambda with CDK
 on:
   push:
     branches:
-      - main   # ← デプロイしたいブランチに変更可能（例：develop）
+      - main
 
 jobs:
   deploy:
@@ -16,12 +16,12 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.22' # Lambda用にビルドするGoのバージョン
+          go-version: "1.22" # Lambda用にビルドするGoのバージョン
 
       - name: Set up Node.js for CDK
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Install CDK and dependencies
         run: |
@@ -43,5 +43,7 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Deploy with CDK
+        env:
+          RECAPTCHA_SECRET_KEY: ${{ secrets.RECAPTCHA_SECRET_KEY }}
         run: |
           cdk deploy --require-approval never

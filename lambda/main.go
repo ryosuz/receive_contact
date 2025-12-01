@@ -74,8 +74,6 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
     dynamoDB := dynamodb.NewFromConfig(cfg)
     sesClient := ses.NewFromConfig(cfg)
 
-    fmt.Println("RECAPTCHA_SECRET_KEY: ", os.Getenv("RECAPTCHA_SECRET_KEY"))
-
     // JSONパース
     var data ContactRequest
     if err := json.Unmarshal([]byte(request.Body), &data); err != nil {
