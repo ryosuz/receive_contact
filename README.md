@@ -1,127 +1,47 @@
-# AWS サーバーレス お問い合わせフォーム構築手順  
-**Go (Lambda) + DynamoDB + SES + API Gateway + CDK + GitHub Actions**
+# receive_contact
 
-## 1. プロジェクト概要
-お問い合わせフォームから送信された問い合わせ内容を  
-**API Gateway → Lambda（Go）→ DynamoDB 保存 → SES でメール通知** するサーバーレス構成です。
+AWSサーバーレス構成で問い合わせを受付・保存・通知するAPIです。詳細仕様・設計は `docs/SPECIFICATION.md` にまとめています。
 
-## 2. システム構成図
+## 特徴
+
+- API Gateway → Lambda(Go) → DynamoDB → SES で問い合わせを処理
+- reCAPTCHA v2 によるボット対策
+- AWS CDK でIaC管理、GitHub ActionsでCI/CD
+
+## 技術スタック（抜粋）
+
+| カテゴリ | 技術 |
+|----------|------|
+| 言語 | Go 1.22 |
+| サーバーレス | AWS Lambda (PROVIDED_AL2, ARM64) |
+| ストレージ | Amazon DynamoDB |
+| 通知 | Amazon SES |
+| API | Amazon API Gateway (REST) |
+| IaC / CI | AWS CDK, GitHub Actions |
+
+## 開発 & デプロイ概要
+
+1. `lambda/` 直下で Go Lambda をビルド（`GOOS=linux GOARCH=arm64`）
+2. 生成した `bootstrap` を含めて CDK デプロイ
+3. GitHub Actions（`main` ブランチ）で自動デプロイ可能
+
+より詳しい手順・CI設定・API仕様は **docs/SPECIFICATION.md** を参照してください。
+
+## ディレクトリ構成
+
 ```
-[Webフォーム]
-    ↓ (POST /contact)
-API Gateway
-    ↓
-Lambda (Go)
- ┌──────────────┐
- │ DynamoDB 保存 │
- │ SES メール通知│
- └──────────────┘
-```
-
-## 3. 使用技術一覧
-| 技術 | 用途 |
-|------|------|
-| Go 1.22 | Lambda 実装 |
-| AWS Lambda | 問い合わせ処理 |
-| API Gateway | 問い合わせエンドポイント |
-| DynamoDB | データ保存 |
-| SES | メール通知 |
-| CDK | IaC |
-| GitHub Actions | CI/CD |
-
-## 4. ディレクトリ構成
-```
-project-root/
-├── lambda/
-│   ├── main.go
-│   └── go.mod
-├── lib/
-│   └── receive-contact-stack.ts
-├── bin/
-│   └── project-root.ts
-├── .github/workflows/
-│   └── deploy.yml
-├── build.ps1
-├── cdk.json
+receive_contact/
+├── lambda/                  # Go Lambda ソース
+├── lib/                     # CDK スタック
+├── bin/                     # CDK エントリポイント
+├── docs/
+│   └── SPECIFICATION.md     # 仕様・設計ドキュメント
+├── .github/workflows/       # CI/CD
 └── README.md
 ```
 
-## 5. Lambda（Go）コード抜粋
-```go
-var (
-    TableName = os.Getenv("TABLE_NAME")
-    FromEmail = os.Getenv("FROM_EMAIL")
-    ToEmail   = os.Getenv("TO_EMAIL")
-)
-```
+## ドキュメント
 
-## 6. CDK スタック定義抜粋
-```ts
-const api = new apigateway.LambdaRestApi(this, 'ContactApi', {
-  handler: lambdaFunc,
-  proxy: false,
-});
-const contact = api.root.addResource('contact');
-contact.addMethod('POST');
-```
+- 詳細仕様・API定義・データ設計: [`docs/SPECIFICATION.md`](docs/SPECIFICATION.md)
 
-## 7. GitHub Actions（CI/CD）
-```yaml
-name: Deploy Lambda with CDK
-on:
-  push:
-    branches: [main]
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v4
-        with: { go-version: '1.22' }
-      - uses: actions/setup-node@v4
-        with: { node-version: '18' }
-      - run: npm install -g aws-cdk && npm install
-      - run: |
-          cd lambda
-          GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -o bootstrap main.go
-          zip function.zip bootstrap
-          cd ..
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-northeast-1
-      - run: cdk deploy --require-approval never
-```
-
-## 8. デプロイ手順
-```
-aws configure
-aws sts get-caller-identity
-cdk bootstrap
-cdk deploy
-```
-
-## 9. テスト
-```bash
-curl -X POST https://<API-ID>.execute-api.ap-northeast-1.amazonaws.com/prod/contact   -H "Content-Type: application/json"   -d '{"name":"test","email":"test@example.com","subject":"test","message":"hello"}'
-```
-
-## 10. まとめ
-- Lambda 実装済み
-- CDK によるIaC構築済み
-- API Gateway連携済み
-- DynamoDB保存処理確認済み
-- SESメール通知確認済み
-- CI/CD導入済み
-- デプロイ＆疎通確認済み
-
----
-return events.APIGatewayProxyResponse{
-        StatusCode: 200,
-        Body:       `{"message":"お問い合わせを受け付けました。"}`,
-        Headers: map[string]string{
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*", // これ必要
-        },
-    }, nil
+README は概要紹介に留め、実装や運用の詳細は SPECIFICATION を参照してください。
