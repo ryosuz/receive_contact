@@ -103,7 +103,13 @@ func parseMultipartContact(request events.APIGatewayProxyRequest) (ContactReques
 	}
 
 	if result.Name == "" || result.Email == "" || result.Subject == "" || result.Message == "" || result.RecaptchaToken == "" {
-		return ContactRequest{}, fmt.Errorf("missing required fields")
+		return ContactRequest{}, fmt.Errorf("必要な項目が不足しています")
+	}
+	if 256 < len(result.email) {
+		return ContactRequest{}, fmt.Errorf("不正なメールアドレスです")
+	}
+	if 2000 < len(result.message) {
+		return ContactRequest{}, fmt.Errorf("メッセージが長すぎます")
 	}
 
 	return result, nil
