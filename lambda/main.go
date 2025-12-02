@@ -1,13 +1,18 @@
 package main
 
 import (
+	"bytes"
     "context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
+	"mime"
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
     "github.com/aws/aws-lambda-go/events"
@@ -37,6 +42,82 @@ type ContactRequest struct {
     Subject   string `json:"subject"`
     Message string `json:"message"`
     RecaptchaToken string `json:"recaptchaToken"`
+}
+
+func parseMultipartContact(request events.APIGatewayProxyRequest) (ContactRequest, error) {
+	body := []byte(request.Body)
+	if request.IsBase64Encoded {
+		decoded, err := base64.StdEncoding.DecodeString(request.Body)
+		if err != nil {
+			return ContactRequest{}, err
+		}
+		body = decoded
+	}
+
+	contentType := getHeaderValue(request.Headers, "Content-Type")
+	if contentType == "" {
+		return ContactRequest{}, fmt.Errorf("content type header missing")
+	}
+
+	mediaType, params, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		return ContactRequest{}, err
+	}
+	if !strings.EqualFold(mediaType, "multipart/form-data") {
+		return ContactRequest{}, fmt.Errorf("unsupported media type")
+	}
+	boundary, ok := params["boundary"]
+	if !ok {
+		return ContactRequest{}, fmt.Errorf("boundary not found")
+	}
+
+	mr := multipart.NewReader(bytes.NewReader(body), boundary)
+	result := ContactRequest{}
+
+	for {
+		part, err := mr.NextPart()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return ContactRequest{}, err
+		}
+		valueBytes, err := io.ReadAll(part)
+		if err != nil {
+			return ContactRequest{}, err
+		}
+		value := strings.TrimSpace(string(valueBytes))
+		switch part.FormName() {
+		case "name":
+			result.Name = value
+		case "email":
+			result.Email = value
+		case "subject":
+			result.Subject = value
+		case "message":
+			result.Message = value
+		case "recaptchaToken":
+			result.RecaptchaToken = value
+		}
+	}
+
+	if result.Name == "" || result.Email == "" || result.Subject == "" || result.Message == "" || result.RecaptchaToken == "" {
+		return ContactRequest{}, fmt.Errorf("missing required fields")
+	}
+
+	return result, nil
+}
+
+func getHeaderValue(headers map[string]string, key string) string {
+	if val, ok := headers[key]; ok {
+		return val
+	}
+	for k, v := range headers {
+		if strings.EqualFold(k, key) {
+			return v
+		}
+	}
+	return ""
 }
 
 // --- reCAPTCHA のレスポンス構造体 ---
@@ -74,9 +155,8 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
     dynamoDB := dynamodb.NewFromConfig(cfg)
     sesClient := ses.NewFromConfig(cfg)
 
-    // JSONパース
-    var data ContactRequest
-    if err := json.Unmarshal([]byte(request.Body), &data); err != nil {
+    data, err := parseMultipartContact(request)
+    if err != nil {
         return errorResponse("リクエストの解析に失敗しました", 400)
     }
 

@@ -46,6 +46,7 @@ export class ReceiveContactStack extends cdk.Stack {
     const api = new apigateway.LambdaRestApi(this, 'ContactApi', {
       handler: lambdaFunc,
       proxy: false,
+      binaryMediaTypes: ['multipart/form-data'],
       defaultCorsPreflightOptions: {
         allowOrigins: [
           "https://portfolio.ryosuz.com",
