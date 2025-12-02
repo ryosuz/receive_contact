@@ -1,6 +1,6 @@
 # receive_contact
 
-AWSサーバーレス構成で問い合わせを受付・保存・通知するAPIです。詳細仕様・設計は `docs/SPECIFICATION.md` にまとめています。
+AWSサーバーレス構成で問い合わせを受付・保存・通知するAPIです。詳細仕様・設計は [`docs/SPECIFICATION.md`](./docs/SPECIFICATION.md) にまとめています。
 
 ## 特徴
 
@@ -25,7 +25,7 @@ AWSサーバーレス構成で問い合わせを受付・保存・通知するAP
 2. 生成した `bootstrap` を含めて CDK デプロイ
 3. GitHub Actions（`main` ブランチ）で自動デプロイ可能
 
-より詳しい手順・CI設定・API仕様は **docs/SPECIFICATION.md** を参照してください。
+より詳しい手順・CI設定・API仕様は [`docs/SPECIFICATION.md`](docs/SPECIFICATION.md) を参照してください。
 
 ## ディレクトリ構成
 
